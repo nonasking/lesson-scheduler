@@ -52,8 +52,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        teacher_id = request.data.get('teacher_id')
-        student_id = request.data.get('student_id')
+        teacher_id = int(request.data.get('teacher_id'))
+        student_id = int(request.data.get('student_id'))
         scheduled_at = request.data.get('scheduled_at')
 
         current_teacher_id = get_current_teacher(request).id
@@ -109,12 +109,12 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def create_repeating(self, request):
-        teacher_id = request.data.get('teacher_id')
-        student_id = request.data.get('student_id')
-        subject_id = request.data.get('student_id')
+        teacher_id = int(request.data.get('teacher_id'))
+        student_id = int(request.data.get('student_id'))
+        subject_id = int(request.data.get('subject_id'))
         start_date = request.data.get('start_date')
         end_date = request.data.get('end_date')
-        frequency = request.data.get('frequency', 2)
+        frequency = int(request.data.get('frequency', 2))
 
         current_teacher_id = get_current_teacher(request).id
         if current_teacher_id != teacher_id:

@@ -15,7 +15,7 @@ class Subject(models.Model):
     english_name = models.CharField(max_length=100, unique=True)
 
 class Teacher(User):
-    subject = models.OneToOneField(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
 
 class Student(User):
     pass
