@@ -39,3 +39,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.completed_date = timezone.now().date()
         schedule.save()
         return Response({'status': 'Schedule marked as complete'})
+    
+    def destroy(self, request, *args, **kwargs):
+        schedule = self.get_object()
+        if schedule.is_complete:
+            return Response({'error': 'Completed schedules cannot be deleted.'}, status=400)
+        return super().destroy(request, *args, **kwargs)
