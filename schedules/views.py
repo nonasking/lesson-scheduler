@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from datetime import timedelta
 
 def get_current_teacher(request):
     teacher_id = request.headers.get('Teacher-ID')
@@ -106,3 +107,48 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.save()
         return Response({'status': 'Schedule marked as complete'})
     
+    @action(detail=False, methods=['post'])
+    def create_repeating(self, request):
+        teacher_id = request.data.get('teacher_id')
+        student_id = request.data.get('student_id')
+        subject_id = request.data.get('student_id')
+        start_date = request.data.get('start_date')
+        end_date = request.data.get('end_date')
+        frequency = request.data.get('frequency', 2)
+
+        current_teacher_id = get_current_teacher(request).id
+        if current_teacher_id != teacher_id:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            start_date = timezone.make_aware(timezone.datetime.fromisoformat(start_date))
+            end_date = timezone.make_aware(timezone.datetime.fromisoformat(end_date))
+        except ValueError:
+            return Response({'error': 'Invalid date format. Use ISO format (YYYY-MM-DD).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if end_date > timezone.now() + timedelta(days=365):
+            return Response({'error': 'End date cannot be more than 1 year from today.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if frequency in [2, 4]:
+            delta = timedelta(weeks=frequency)
+        else:
+            return Response({'error': 'Invalid frequency. Choose either 2 or 4 weeks.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        current_date = start_date
+        created_schedules = []
+        while current_date <= end_date:
+            if not Schedule.objects.filter(
+                teacher_id=teacher_id,
+                student_id=student_id,
+                scheduled_at=current_date.date()
+            ).exists():
+                Schedule.objects.create(
+                    teacher_id=teacher_id,
+                    student_id=student_id,
+                    subject_id=subject_id,
+                    scheduled_at=current_date.date()
+                )
+                created_schedules.append(current_date.date())
+            current_date += delta
+
+        return Response({'status': 'Schedules created', 'dates': created_schedules}, status=status.HTTP_201_CREATED)
