@@ -29,3 +29,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         ).values('scheduled_at').annotate(count=Count('id')).order_by('scheduled_at')
 
         return Response({schedule['scheduled_at'].strftime('%Y-%m-%d'): schedule['count'] for schedule in schedules})
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        schedule = self.get_object()
+        if schedule.is_complete:
+            return Response({'error': 'Schedule is already completed.'}, status=400)
+        schedule.is_complete = True
+        schedule.completed_date = timezone.now().date()
+        schedule.save()
+        return Response({'status': 'Schedule marked as complete'})
