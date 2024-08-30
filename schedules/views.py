@@ -28,6 +28,28 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
 
+    def get_queryset(self):
+        queryset = Schedule.objects.all()
+
+        teacher_id = self.request.query_params.get('teacher_id')
+        if teacher_id:
+            queryset = queryset.filter(teacher_id=teacher_id)
+        
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        if date_from and date_to:
+            queryset = queryset.filter(scheduled_at__range=[date_from, date_to])
+        elif date_from:
+            queryset = queryset.filter(scheduled_at__gte=date_from)
+        elif date_to:
+            queryset = queryset.filter(scheduled_at__lte=date_to)
+        
+        is_complete = self.request.query_params.get('is_complete')
+        if is_complete is not None:
+            queryset = queryset.filter(is_complete=is_complete.lower() == 'true')
+
+        return queryset
+
     def create(self, request, *args, **kwargs):
         teacher_id = request.data.get('teacher_id')
         student_id = request.data.get('student_id')
@@ -41,6 +63,18 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Schedule already exists for the given teacher, student, and date.'}, status=status.HTTP_400_BAD_REQUEST)
 
         return super().create(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        schedule = self.get_object()
+
+        current_teacher = get_current_teacher(request)
+        if current_teacher != schedule.teacher:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if schedule.is_complete:
+            return Response({'error': 'Completed schedules cannot be deleted.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
@@ -72,14 +106,3 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.save()
         return Response({'status': 'Schedule marked as complete'})
     
-    def destroy(self, request, *args, **kwargs):
-        schedule = self.get_object()
-
-        current_teacher = get_current_teacher(request)
-        if current_teacher != schedule.teacher:
-            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-        
-        if schedule.is_complete:
-            return Response({'error': 'Completed schedules cannot be deleted.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        return super().destroy(request, *args, **kwargs)
