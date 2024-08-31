@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from .models import Schedule, Student, Teacher
-from .serializers import ScheduleSerializer, StudentSerializer, TeacherSerializer
+from .models import Schedule, Teacher
+from .serializers import ScheduleSerializer
 
 
 def get_current_teacher(request):
@@ -18,17 +18,6 @@ def get_current_teacher(request):
         return Teacher.objects.get(id=teacher_id)
     except Teacher.DoesNotExist:
         raise ValidationError({"error": "Invalid Teacher-ID."})
-
-
-class TeacherViewSet(viewsets.ModelViewSet):
-    queryset = Teacher.objects.all()
-    serializer_class = TeacherSerializer
-
-
-class StudentViewSet(viewsets.ModelViewSet):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
