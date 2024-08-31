@@ -174,6 +174,12 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if start_date > end_date:
+            return Response(
+                {"error": "Start date cannot be later then end date."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if end_date > timezone.now() + timedelta(days=365):
             return Response(
                 {"error": "End date cannot be more than 1 year from today."},
