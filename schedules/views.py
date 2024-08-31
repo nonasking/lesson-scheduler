@@ -151,7 +151,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         student_id = int(request.data.get("student_id"))
         start_date = request.data.get("start_date")
         end_date = request.data.get("end_date")
-        frequency = int(request.data.get("frequency", 2))
+        frequency = int(request.data.get("frequency"))
 
         current_teacher = get_current_teacher(request)
         current_teacher_id = current_teacher.id
