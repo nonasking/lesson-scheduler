@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -104,13 +102,12 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
             )
 
-        if schedule.is_complete:
-            return Response(
-                {"error": "Completed schedules cannot be deleted."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        try:
+            schedule.delete_schedule()
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return super().destroy(request, *args, **kwargs)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
     def dashboard(self, request):
@@ -146,16 +143,12 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
             )
 
-        if schedule.is_complete:
-            return Response(
-                {"error": "Schedule is already completed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        try:
+            schedule.mark_as_complete()
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        schedule.is_complete = True
-        schedule.completed_date = timezone.now().date()
-        schedule.save()
-        return Response({"status": "Schedule marked complete"})
+        return Response({"status": "Schedule marked as complete"})
 
     @action(detail=False, methods=["post"], url_path="create-repeating")
     def create_repeating(self, request):
@@ -174,52 +167,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            start_date = timezone.make_aware(
-                timezone.datetime.fromisoformat(start_date)
+            created_schedules = Schedule.create_repeating_schedules(
+                teacher_id, student_id, subject_id, start_date, end_date, frequency
             )
-            end_date = timezone.make_aware(timezone.datetime.fromisoformat(end_date))
-        except ValueError:
-            return Response(
-                {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if start_date > end_date:
-            return Response(
-                {"error": "Start date cannot be later then end date."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if end_date > timezone.now() + timedelta(days=365):
-            return Response(
-                {"error": "End date cannot be more than 1 year from today."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if frequency in [2, 4]:
-            delta = timedelta(weeks=frequency)
-        else:
-            return Response(
-                {"error": "Invalid frequency. Choose either 2 or 4 weeks."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        current_date = start_date
-        created_schedules = []
-        while current_date <= end_date:
-            if not Schedule.objects.filter(
-                teacher_id=teacher_id,
-                student_id=student_id,
-                scheduled_at=current_date.date(),
-            ).exists():
-                Schedule.objects.create(
-                    teacher_id=teacher_id,
-                    student_id=student_id,
-                    subject_id=subject_id,
-                    scheduled_at=current_date.date(),
-                )
-                created_schedules.append(current_date.date())
-            current_date += delta
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {"status": "Schedules created", "dates": created_schedules},
