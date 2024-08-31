@@ -87,11 +87,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        request.data._mutable = True
-        request.data.update({"subject_id": subject_id})
-        request.data._mutable = False
+        Schedule.objects.create(
+            teacher_id=teacher_id,
+            student_id=student_id,
+            subject_id=subject_id,
+            scheduled_at=scheduled_at,
+        )
 
-        return super().create(request, *args, **kwargs)
+        return Response(
+            {"status": "Schedule created"},
+            status=status.HTTP_201_CREATED,
+        )
 
     def destroy(self, request, *args, **kwargs):
         schedule = self.get_object()
