@@ -141,7 +141,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.save()
         return Response({"status": "Schedule marked complete"})
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="create-repeating")
     def create_repeating(self, request):
         teacher_id = int(request.data.get("teacher_id"))
         student_id = int(request.data.get("student_id"))
