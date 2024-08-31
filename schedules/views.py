@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from .models import Schedule, Student, Teacher
-from .serializers import ScheduleSerializer, StudentSerializer, TeacherSerializer
+from .models import Schedule, Teacher
+from .serializers import ScheduleSerializer
 
 
 def get_current_teacher(request):
@@ -18,17 +18,6 @@ def get_current_teacher(request):
         return Teacher.objects.get(id=teacher_id)
     except Teacher.DoesNotExist:
         raise ValidationError({"error": "Invalid Teacher-ID."})
-
-
-class TeacherViewSet(viewsets.ModelViewSet):
-    queryset = Teacher.objects.all()
-    serializer_class = TeacherSerializer
-
-
-class StudentViewSet(viewsets.ModelViewSet):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
@@ -87,11 +76,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        request.data._mutable = True
-        request.data.update({"subject_id": subject_id})
-        request.data._mutable = False
+        Schedule.objects.create(
+            teacher_id=teacher_id,
+            student_id=student_id,
+            subject_id=subject_id,
+            scheduled_at=scheduled_at,
+        )
 
-        return super().create(request, *args, **kwargs)
+        return Response(
+            {"status": "Schedule created"},
+            status=status.HTTP_201_CREATED,
+        )
 
     def destroy(self, request, *args, **kwargs):
         schedule = self.get_object()
@@ -156,7 +151,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         student_id = int(request.data.get("student_id"))
         start_date = request.data.get("start_date")
         end_date = request.data.get("end_date")
-        frequency = int(request.data.get("frequency", 2))
+        frequency = int(request.data.get("frequency"))
 
         current_teacher = get_current_teacher(request)
         current_teacher_id = current_teacher.id
