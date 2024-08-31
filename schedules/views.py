@@ -24,7 +24,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     serializer_class = ScheduleSerializer
 
     def get_queryset(self):
-        queryset = Schedule.objects.all()
+        queryset = Schedule.objects.select_related('teacher', 'student', 'subject')
 
         queryset = self.filter_by_teacher(queryset)
         queryset = self.filter_by_date_range(queryset)
