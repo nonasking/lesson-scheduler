@@ -36,7 +36,7 @@ class ScheduleViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Schedule.objects.count(), 1)
 
-    def test_create_schedule_with_duplicate(self):
+    def test_create_repeating_schedule(self):
         schedule = Schedule.objects.create(
             teacher=self.teacher,
             student=self.student,
