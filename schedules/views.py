@@ -61,7 +61,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if Schedule.objects.filter(teacher_id=teacher_id, student_id=student_id, scheduled_at=scheduled_at).exists():
-            return Response({'error': 'Schedule already exists for the given teacher, student, and date.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'This schedule already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
         return super().create(request, *args, **kwargs)
 
@@ -105,7 +105,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.is_complete = True
         schedule.completed_date = timezone.now().date()
         schedule.save()
-        return Response({'status': 'Schedule marked as complete'})
+        return Response({'status': 'Schedule marked complete'})
     
     @action(detail=False, methods=['post'])
     def create_repeating(self, request):
