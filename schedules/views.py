@@ -63,7 +63,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         student_id = int(request.data.get("student_id"))
         scheduled_at = request.data.get("scheduled_at")
 
-        current_teacher_id = get_current_teacher(request).id
+        current_teacher = get_current_teacher(request)
+        current_teacher_id = current_teacher.id
+        subject_id = current_teacher.subject.id
         if current_teacher_id != teacher_id:
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -76,6 +78,10 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 {"error": "This schedule already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        request.data._mutable = True
+        request.data.update({"subject_id": subject_id})
+        request.data._mutable = False
 
         return super().create(request, *args, **kwargs)
 
@@ -145,12 +151,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     def create_repeating(self, request):
         teacher_id = int(request.data.get("teacher_id"))
         student_id = int(request.data.get("student_id"))
-        subject_id = int(request.data.get("subject_id"))
         start_date = request.data.get("start_date")
         end_date = request.data.get("end_date")
         frequency = int(request.data.get("frequency", 2))
 
-        current_teacher_id = get_current_teacher(request).id
+        current_teacher = get_current_teacher(request)
+        current_teacher_id = current_teacher.id
+        subject_id = current_teacher.subject.id
         if current_teacher_id != teacher_id:
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
