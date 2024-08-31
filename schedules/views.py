@@ -39,10 +39,19 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Schedule.objects.all()
 
+        queryset = self.filter_by_teacher(queryset)
+        queryset = self.filter_by_date_range(queryset)
+        queryset = self.filter_by_completion_status(queryset)
+
+        return queryset
+
+    def filter_by_teacher(self, queryset):
         teacher_id = self.request.query_params.get("teacher_id")
         if teacher_id:
             queryset = queryset.filter(teacher_id=teacher_id)
+        return queryset
 
+    def filter_by_date_range(self, queryset):
         date_from = self.request.query_params.get("date_from")
         date_to = self.request.query_params.get("date_to")
         if date_from and date_to:
@@ -51,11 +60,12 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(scheduled_at__gte=date_from)
         elif date_to:
             queryset = queryset.filter(scheduled_at__lte=date_to)
+        return queryset
 
+    def filter_by_completion_status(self, queryset):
         is_complete = self.request.query_params.get("is_complete")
         if is_complete is not None:
             queryset = queryset.filter(is_complete=is_complete.lower() == "true")
-
         return queryset
 
     def create(self, request, *args, **kwargs):
