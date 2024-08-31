@@ -21,6 +21,8 @@ class User(models.Model):
 class Subject(models.Model):
     korean_name = models.CharField(max_length=100, unique=True)
     english_name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
 
 class Teacher(User):
