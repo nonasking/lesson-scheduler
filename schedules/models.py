@@ -4,6 +4,8 @@ from django.db import models
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from .constants import FREQUENCY_CHOICES
+
 
 class User(models.Model):
     user_name = models.CharField(max_length=255, unique=True)
@@ -74,10 +76,9 @@ class Schedule(models.Model):
         existing_schedules = Schedule.objects.filter(
             teacher_id=teacher_id,
             student_id=student_id,
-            scheduled_at__range=[start_date, end_date]
-        ).values_list('scheduled_at', flat=True)
+            scheduled_at__range=[start_date, end_date],
+        ).values_list("scheduled_at", flat=True)
 
-        FREQUENCY_CHOICES = [2, 4]
         if frequency in FREQUENCY_CHOICES:
             delta = timedelta(weeks=frequency)
         else:
