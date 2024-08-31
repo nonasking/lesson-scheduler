@@ -71,6 +71,12 @@ class Schedule(models.Model):
         if end_date > timezone.now() + timedelta(days=365):
             raise ValidationError("End date cannot be more than 1 year from today.")
 
+        existing_schedules = Schedule.objects.filter(
+            teacher_id=teacher_id,
+            student_id=student_id,
+            scheduled_at__range=[start_date, end_date]
+        ).values_list('scheduled_at', flat=True)
+
         FREQUENCY_CHOICES = [2, 4]
         if frequency in FREQUENCY_CHOICES:
             delta = timedelta(weeks=frequency)
@@ -80,11 +86,7 @@ class Schedule(models.Model):
         current_date = start_date
         created_schedules = []
         while current_date <= end_date:
-            if not Schedule.objects.filter(
-                teacher_id=teacher_id,
-                student_id=student_id,
-                scheduled_at=current_date.date(),
-            ).exists():
+            if current_date.date() not in existing_schedules:
                 Schedule.objects.create(
                     teacher_id=teacher_id,
                     student_id=student_id,
