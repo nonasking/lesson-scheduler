@@ -73,6 +73,12 @@ pip install -r requirements.txt
 python manage.py runserver
 ```
 
+### cf. 테스트 코드 실행
+
+```bash
+python manage.py test
+```
+
 ---
 
 ## API 명세
