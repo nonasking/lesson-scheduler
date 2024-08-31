@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from .constants import FREQUENCY_CHOICES
 
 
 class User(models.Model):
@@ -77,7 +78,6 @@ class Schedule(models.Model):
             scheduled_at__range=[start_date, end_date]
         ).values_list('scheduled_at', flat=True)
 
-        FREQUENCY_CHOICES = [2, 4]
         if frequency in FREQUENCY_CHOICES:
             delta = timedelta(weeks=frequency)
         else:
