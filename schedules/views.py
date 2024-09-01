@@ -5,20 +5,15 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from .models import Schedule, Teacher
+from .models import Schedule
 from .serializers import ScheduleSerializer
-from .utils import filter_by_completion_status, filter_by_date_range, filter_by_teacher
-
-
-def get_current_teacher(request):
-    teacher_id = request.headers.get("Teacher-ID")
-    if not teacher_id:
-        raise ValidationError({"error": "Teacher-ID header is required."})
-
-    try:
-        return Teacher.objects.get(id=teacher_id)
-    except Teacher.DoesNotExist:
-        raise ValidationError({"error": "Invalid Teacher-ID."})
+from .utils import (
+    filter_by_completion_status,
+    filter_by_date_range,
+    filter_by_teacher,
+    get_current_teacher,
+    teacher_permission_required,
+)
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):
@@ -119,15 +114,10 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             }
         )
 
+    @teacher_permission_required
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
         schedule = self.get_object()
-
-        current_teacher = get_current_teacher(request)
-        if current_teacher != schedule.teacher:
-            return Response(
-                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
-            )
 
         try:
             schedule.mark_as_complete()
@@ -136,14 +126,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         return Response({"status": "Schedule marked as complete"})
 
+    @teacher_permission_required
     def destroy(self, request, *args, **kwargs):
         schedule = self.get_object()
-
-        current_teacher = get_current_teacher(request)
-        if current_teacher != schedule.teacher:
-            return Response(
-                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
-            )
 
         try:
             schedule.delete_schedule()
