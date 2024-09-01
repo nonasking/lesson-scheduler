@@ -22,19 +22,9 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
-    teacher = TeacherSerializer(read_only=True)
-    student = StudentSerializer(read_only=True)
-    subject = SubjectSerializer(read_only=True)
-
-    teacher_id = serializers.PrimaryKeyRelatedField(
-        queryset=Teacher.objects.all(), source="teacher", write_only=True
-    )
-    student_id = serializers.PrimaryKeyRelatedField(
-        queryset=Student.objects.all(), source="student", write_only=True
-    )
-    subject_id = serializers.PrimaryKeyRelatedField(
-        queryset=Subject.objects.all(), source="subject", write_only=True
-    )
+    teacher = TeacherSerializer()
+    student = StudentSerializer()
+    subject = SubjectSerializer()
 
     class Meta:
         model = Schedule
@@ -48,7 +38,4 @@ class ScheduleSerializer(serializers.ModelSerializer):
             "scheduled_at",
             "created_at",
             "modified_at",
-            "teacher_id",
-            "student_id",
-            "subject_id",
         ]
