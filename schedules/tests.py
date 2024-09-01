@@ -117,7 +117,7 @@ class ScheduleViewSetTest(APITestCase):
             scheduled_at=(timezone.now() + timedelta(days=7)).date(),
         )
         url = reverse("schedule-complete", kwargs={"pk": schedule.id})
-        response = self.client.post(url)
+        response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         schedule.refresh_from_db()
         self.assertTrue(schedule.is_complete)
