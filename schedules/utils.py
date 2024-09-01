@@ -39,6 +39,8 @@ def filter_by_teacher(queryset, teacher_id):
 
 def filter_by_date_range(queryset, date_from=None, date_to=None):
     if date_from and date_to:
+        if date_from > date_to:
+            raise ValidationError("Date_from cannot be later then date_to.")
         queryset = queryset.filter(scheduled_at__range=[date_from, date_to])
     elif date_from:
         queryset = queryset.filter(scheduled_at__gte=date_from)
