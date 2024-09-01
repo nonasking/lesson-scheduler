@@ -19,23 +19,23 @@
 ├── requirements.txt
 ├── .gitignore
 ├── lesson_scheduler /
-	├── __init__.py
-	├── asgi.py
-	├── settings.py
+  ├── __init__.py
+  ├── asgi.py
+  ├── settings.py
   ├── urls.py
-	└── wsgi.py
+  └── wsgi.py
 ├── schedules /
-    ├── migrations /
-	  ├── __init__.py
-	  ├── admin.py
-	  ├── apps.py
-    ├── constants.py
-    ├── models.py
-    ├── serializers.py
-    ├── tests.py
-    ├── urls.py
-    ├── utils.py
-  	└── views.py
+  ├── migrations /
+  ├── __init__.py
+  ├── admin.py
+  ├── apps.py
+  ├── constants.py
+  ├── models.py
+  ├── serializers.py
+  ├── tests.py
+  ├── urls.py
+  ├── utils.py
+  └── views.py
 ```
 
 ---
