@@ -22,18 +22,20 @@
 	├── __init__.py
 	├── asgi.py
 	├── settings.py
-    ├── urls.py
+  ├── urls.py
 	└── wsgi.py
 ├── schedules /
     ├── migrations /
-	├── __init__.py
-	├── admin.py
-	├── apps.py
+	  ├── __init__.py
+	  ├── admin.py
+	  ├── apps.py
+    ├── constants.py
     ├── models.py
     ├── serializers.py
     ├── tests.py
     ├── urls.py
-	└── views.py
+    ├── utils.py
+  	└── views.py
 ```
 
 ---
