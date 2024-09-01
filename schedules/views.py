@@ -116,9 +116,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
     @teacher_permission_required
     @action(detail=True, methods=["post"])
-    def complete(self, request, pk=None):
-        schedule = self.get_object()
-
+    def complete(self, request, schedule=None, pk=None):
         try:
             schedule.mark_as_complete()
         except ValidationError as e:
@@ -127,9 +125,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         return Response({"status": "Schedule marked as complete"})
 
     @teacher_permission_required
-    def destroy(self, request, *args, **kwargs):
-        schedule = self.get_object()
-
+    def destroy(self, request, schedule=None, *args, **kwargs):
         try:
             schedule.delete_schedule()
         except ValidationError as e:
