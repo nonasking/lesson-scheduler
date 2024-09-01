@@ -1,3 +1,4 @@
+import stat
 from datetime import timedelta
 
 from django.db import models
@@ -43,17 +44,20 @@ class Schedule(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
-    def mark_as_complete(self):
-        if self.is_complete:
-            raise ValidationError("Schedule is already completed.")
-        self.is_complete = True
-        self.completed_date = timezone.now().date()
-        self.save()
+    @classmethod
+    def create_schedule(cls, teacher_id, student_id, subject_id, scheduled_at):
+        if Schedule.objects.filter(
+            teacher_id=teacher_id, student_id=student_id, scheduled_at=scheduled_at
+        ).exists():
+            raise ValidationError("This schedule already exists.")
 
-    def delete_schedule(self):
-        if self.is_complete:
-            raise ValidationError("Completed schedules cannot be deleted.")
-        self.delete()
+        Schedule.objects.create(
+            teacher_id=teacher_id,
+            student_id=student_id,
+            subject_id=subject_id,
+            scheduled_at=scheduled_at,
+        )
+        return scheduled_at
 
     @classmethod
     def create_repeating_schedules(
@@ -97,6 +101,18 @@ class Schedule(models.Model):
                 created_schedules.append(current_date.date())
             current_date += delta
         return created_schedules
+
+    def mark_as_complete(self):
+        if self.is_complete:
+            raise ValidationError("Schedule is already completed.")
+        self.is_complete = True
+        self.completed_date = timezone.now().date()
+        self.save()
+
+    def delete_schedule(self):
+        if self.is_complete:
+            raise ValidationError("Completed schedules cannot be deleted.")
+        self.delete()
 
     class Meta:
         unique_together = ("teacher", "student", "scheduled_at")
