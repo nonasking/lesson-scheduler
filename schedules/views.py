@@ -115,7 +115,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         )
 
     @teacher_permission_required
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["patch"])
     def complete(self, request, schedule=None, pk=None):
         try:
             schedule.mark_as_complete()
