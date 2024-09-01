@@ -26,7 +26,7 @@ def teacher_permission_required(view_func):
         if schedule.teacher != current_teacher:
             raise PermissionDenied({"error": "Permission denied"})
 
-        return view_func(self, request, *args, **kwargs)
+        return view_func(self, request, schedule=schedule, *args, **kwargs)
 
     return _wrapped_view
 
