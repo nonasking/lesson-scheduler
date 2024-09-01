@@ -12,7 +12,7 @@ def get_current_teacher(request):
         raise ValidationError({"error": "Teacher-ID header is required."})
 
     try:
-        return Teacher.objects.get(id=teacher_id)
+        return Teacher.objects.select_related("subject").get(id=teacher_id)
     except Teacher.DoesNotExist:
         raise ValidationError({"error": "Invalid Teacher-ID."})
 
