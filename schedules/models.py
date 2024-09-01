@@ -88,17 +88,27 @@ class Schedule(models.Model):
             raise ValidationError("Invalid frequency. Choose either 2 or 4 weeks.")
 
         current_date = start_date
+
+        schedules_to_create = []
         created_schedules = []
         while current_date <= end_date:
             if current_date.date() not in existing_schedules:
-                Schedule.objects.create(
-                    teacher_id=teacher_id,
-                    student_id=student_id,
-                    subject_id=subject_id,
-                    scheduled_at=current_date.date(),
+                schedules_to_create.append(
+                    Schedule(
+                        teacher_id=teacher_id,
+                        student_id=student_id,
+                        subject_id=subject_id,
+                        scheduled_at=current_date.date(),
+                        created_at=timezone.now(),
+                        modified_at=timezone.now(),
+                    )
                 )
                 created_schedules.append(current_date.date())
             current_date += delta
+
+        if schedules_to_create:
+            Schedule.objects.bulk_create(schedules_to_create)
+
         return created_schedules
 
     def mark_as_complete(self):
