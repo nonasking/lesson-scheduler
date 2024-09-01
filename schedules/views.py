@@ -5,55 +5,20 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from .models import Schedule, Teacher
+from .models import Schedule
 from .serializers import ScheduleSerializer
+from .utils import (
+    filter_by_completion_status,
+    filter_by_date_range,
+    filter_by_teacher,
+    get_current_teacher,
+    teacher_permission_required,
+)
 
-
-def get_current_teacher(request):
-    teacher_id = request.headers.get("Teacher-ID")
-    if not teacher_id:
-        raise ValidationError({"error": "Teacher-ID header is required."})
-
-    try:
-        return Teacher.objects.get(id=teacher_id)
-    except Teacher.DoesNotExist:
-        raise ValidationError({"error": "Invalid Teacher-ID."})
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
-
-    def get_queryset(self):
-        queryset = Schedule.objects.select_related('teacher', 'student', 'subject')
-
-        queryset = self.filter_by_teacher(queryset)
-        queryset = self.filter_by_date_range(queryset)
-        queryset = self.filter_by_completion_status(queryset)
-
-        return queryset
-
-    def filter_by_teacher(self, queryset):
-        teacher_id = self.request.query_params.get("teacher_id")
-        if teacher_id:
-            queryset = queryset.filter(teacher_id=teacher_id)
-        return queryset
-
-    def filter_by_date_range(self, queryset):
-        date_from = self.request.query_params.get("date_from")
-        date_to = self.request.query_params.get("date_to")
-        if date_from and date_to:
-            queryset = queryset.filter(scheduled_at__range=[date_from, date_to])
-        elif date_from:
-            queryset = queryset.filter(scheduled_at__gte=date_from)
-        elif date_to:
-            queryset = queryset.filter(scheduled_at__lte=date_to)
-        return queryset
-
-    def filter_by_completion_status(self, queryset):
-        is_complete = self.request.query_params.get("is_complete")
-        if is_complete is not None:
-            queryset = queryset.filter(is_complete=is_complete.lower() == "true")
-        return queryset
 
     def create(self, request, *args, **kwargs):
         teacher_id = int(request.data.get("teacher_id"))
@@ -68,82 +33,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
             )
 
-        if Schedule.objects.filter(
-            teacher_id=teacher_id, student_id=student_id, scheduled_at=scheduled_at
-        ).exists():
-            return Response(
-                {"error": "This schedule already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            created_schedule = Schedule.create_schedule(
+                teacher_id, student_id, subject_id, scheduled_at
             )
-
-        Schedule.objects.create(
-            teacher_id=teacher_id,
-            student_id=student_id,
-            subject_id=subject_id,
-            scheduled_at=scheduled_at,
-        )
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            {"status": "Schedule created"},
+            {"status": "Schedule created", "date": created_schedule},
             status=status.HTTP_201_CREATED,
         )
-
-    def destroy(self, request, *args, **kwargs):
-        schedule = self.get_object()
-
-        current_teacher = get_current_teacher(request)
-        if current_teacher != schedule.teacher:
-            return Response(
-                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
-            )
-
-        try:
-            schedule.delete_schedule()
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=False, methods=["get"])
-    def dashboard(self, request):
-        current_teacher = get_current_teacher(request)
-        year = request.query_params.get("year", timezone.now().year)
-        month = request.query_params.get("month", timezone.now().month)
-
-        schedules = (
-            Schedule.objects.filter(
-                teacher=current_teacher,
-                scheduled_at__year=year,
-                scheduled_at__month=month,
-            )
-            .values("scheduled_at")
-            .annotate(count=Count("id"))
-            .order_by("scheduled_at")
-        )
-
-        return Response(
-            {
-                schedule["scheduled_at"].strftime("%Y-%m-%d"): schedule["count"]
-                for schedule in schedules
-            }
-        )
-
-    @action(detail=True, methods=["post"])
-    def complete(self, request, pk=None):
-        schedule = self.get_object()
-
-        current_teacher = get_current_teacher(request)
-        if current_teacher != schedule.teacher:
-            return Response(
-                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
-            )
-
-        try:
-            schedule.mark_as_complete()
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"status": "Schedule marked as complete"})
 
     @action(detail=False, methods=["post"], url_path="create-repeating")
     def create_repeating(self, request):
@@ -172,3 +72,67 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             {"status": "Schedules created", "dates": created_schedules},
             status=status.HTTP_201_CREATED,
         )
+
+    def get_queryset(self):
+        teacher_id = self.request.query_params.get("teacher_id")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        is_complete = self.request.query_params.get("is_complete")
+
+        queryset = Schedule.objects.select_related("teacher", "student", "subject")
+
+        if teacher_id:
+            queryset = filter_by_teacher(queryset, teacher_id)
+        if date_from or date_to:
+            queryset = filter_by_date_range(queryset, date_from, date_to)
+        if is_complete is not None:
+            queryset = filter_by_completion_status(queryset, is_complete)
+
+        return queryset
+
+    @action(detail=False, methods=["get"])
+    def dashboard(self, request):
+        current_teacher = get_current_teacher(request)
+        year = request.query_params.get("year", timezone.now().year)
+        month = request.query_params.get("month", timezone.now().month)
+
+        schedules = (
+            Schedule.objects.filter(
+                teacher=current_teacher,
+                scheduled_at__year=year,
+                scheduled_at__month=month,
+            )
+            .values("scheduled_at")
+            .annotate(count=Count("id"))
+            .order_by("scheduled_at")
+        )
+
+        return Response(
+            {
+                schedule["scheduled_at"].strftime("%Y-%m-%d"): schedule["count"]
+                for schedule in schedules
+            }
+        )
+
+    @teacher_permission_required
+    @action(detail=True, methods=["post"])
+    def complete(self, request, pk=None):
+        schedule = self.get_object()
+
+        try:
+            schedule.mark_as_complete()
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"status": "Schedule marked as complete"})
+
+    @teacher_permission_required
+    def destroy(self, request, *args, **kwargs):
+        schedule = self.get_object()
+
+        try:
+            schedule.delete_schedule()
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
